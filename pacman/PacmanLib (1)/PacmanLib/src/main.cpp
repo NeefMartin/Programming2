@@ -4,7 +4,6 @@
 
 #include "GameObjectStruct.hpp"
 #include "UI.hpp"
-#include "Game.hpp"
 #include <SDL2/SDL.h>
 #include <vector>
 
@@ -44,9 +43,7 @@ int main(int /*argc*/, char ** /*argv*/)
     pacman.dir = UP;
 
     // Call game init code here
-    Game game(map);
-    game.init();
-    game.run();
+
 
     bool quit = false;
     while (!quit) {
