@@ -38,9 +38,6 @@ class UI
     /// Destructor fully de-initializes the UI, including closing the main window.
     ~UI();
 
-    void clear();
-    void present();
-
     /// Setter for the score.
     ///
     /// \param score score
@@ -59,12 +56,6 @@ class UI
     /// \param objects Objects that are drawn last.
     void update(std::vector<GameObjectStruct> objects);
 
-    /// Draws walls onto the screen according to \p map
-    /// \param map A 2-by-2 grid indicating which grid locations are walls.
-    //void drawBackground(std::vector<std::vector<int>> &map);
-    void drawBackground(const std::vector<std::vector<int>>& map);
-
-
   private:
     void init();
 
@@ -77,6 +68,9 @@ class UI
     /// `clips[<type>][<direction>]`.
     void loadMaps();
 
+    /// Draws walls onto the screen according to \p map
+    /// \param map A 2-by-2 grid indicating which grid locations are walls.
+    void drawBackground(std::vector<std::vector<int>> &map);
 
     /// Draws the score onto the screen.
     void drawScore();

@@ -237,9 +237,8 @@ void UI::loadMaps()
     }
 }
 
-
-//void UI::drawBackground(std::vector<std::vector<int>> &map)
-void UI::drawBackground(const std::vector<std::vector<int>>& map) {
+void UI::drawBackground(std::vector<std::vector<int>> &map)
+{
     // Draw a wall on each position containing a one
     for (size_t i = 0; i < map.size(); i++) {
         for (size_t j = 0; j < map[i].size(); j++) {
@@ -251,14 +250,6 @@ void UI::drawBackground(const std::vector<std::vector<int>>& map) {
             }
         }
     }
-}
-
-void UI::clear() {
-    SDL_RenderClear(renderer); 
-}
-
-void UI::present() {
-    SDL_RenderPresent(renderer); 
 }
 
 SDL_Texture *UI::loadTexture(const std::string &file)
