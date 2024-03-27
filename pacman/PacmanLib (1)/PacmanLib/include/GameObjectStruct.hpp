@@ -48,6 +48,10 @@ struct GameObjectStruct {
     Type type;
     /// The direction of the item (sprite selection).
     Direction dir;
+
+    bool operator==(const GameObjectStruct& other) const {
+        return (x == other.x && y== other.y); // Compare the 'type' members for equality
+    }
 };
 
 #endif // SRC_GAMEOBJECTSTRUCT_H

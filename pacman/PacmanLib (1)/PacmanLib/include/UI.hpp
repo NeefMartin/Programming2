@@ -47,6 +47,17 @@ class UI
     /// @param lives lives
     void setLives(int lives);
 
+    /// Getter for the score
+    ///
+    /// \param score score
+    int getScore();
+
+    /// Getter for the lives
+    ///
+    /// @param lives lives
+    int getLives();
+
+
     /// Update the screen
     /// - Draw the background
     /// - Draw the score

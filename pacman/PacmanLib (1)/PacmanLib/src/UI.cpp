@@ -85,7 +85,11 @@ void UI::drawLives()
 
 void UI::setScore(int score) { this->score = score; }
 
+int UI::getScore() { return score; }
+
 void UI::setLives(int lives) { this->lives = lives; }
+
+int UI::getLives() { return lives; }
 
 /// Initialises the UI::window and the UI::renderer.
 void UI::init()
