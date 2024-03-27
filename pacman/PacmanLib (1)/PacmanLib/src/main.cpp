@@ -62,12 +62,16 @@ int main(int /*argc*/, char ** /*argv*/)
             if (e.type == SDL_KEYDOWN) {
                 switch (e.key.keysym.sym) {
                 case SDLK_LEFT: // YOUR CODE HERE
+                    if (map[pacman.y][pacman.x - 1] != 1) pacman.dir = LEFT;
                     break;
                 case SDLK_RIGHT: // YOUR CODE HERE
+                    if (map[pacman.y][pacman.x + 1] != 1) pacman.dir = RIGHT;
                     break;
                 case SDLK_UP: // YOUR CODE HERE
+                    if (map[pacman.y - 1][pacman.x] != 1) pacman.dir = UP;
                     break;
                 case SDLK_DOWN: // YOUR CODE HERE
+                    if (map[pacman.y + 1][pacman.x] != 1) pacman.dir = DOWN;
                     break;
                 case SDLK_ESCAPE:
                     quit = true;
@@ -86,6 +90,25 @@ int main(int /*argc*/, char ** /*argv*/)
         std::vector<GameObjectStruct> objects = {pacman};
         // ^-- Your code should provide this vector somehow (e.g.
         // game->getStructs())
+        // Update Pac-Man's position
+        switch (pacman.dir) {
+            case LEFT:
+                if (pacman.x == 0) pacman.x = map[0].size() - 1;
+                else if (map[pacman.y][pacman.x - 1] != 1) pacman.x -= 1;
+                break;
+            case RIGHT:
+                if (pacman.x == map[0].size() - 1) pacman.x = 0;
+                else if (map[pacman.y][pacman.x + 1] != 1) pacman.x += 1;
+                break;
+            case UP:
+                if (map[pacman.y - 1][pacman.x] != 1) pacman.y -= 1;
+                break;
+            case DOWN:
+                if (map[pacman.y + 1][pacman.x] != 1) pacman.y += 1;
+                break;
+        }
+
+
         ui.update(objects);
 
         while (!SDL_TICKS_PASSED(SDL_GetTicks(), timeout)) {
