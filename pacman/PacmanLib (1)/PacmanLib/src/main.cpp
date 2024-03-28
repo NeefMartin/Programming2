@@ -6,9 +6,89 @@
 #include "UI.hpp"
 #include <SDL2/SDL.h>
 #include <vector>
+#include <ctime>
 
-const Uint32 pacmanMovementInterval = 150; // milliseconds between movements
+const Uint32 pacmanMovementInterval = 250; // milliseconds between movements
 Uint32 lastMovementTime = 0; // Last time Pac-Man moved
+
+
+std::vector<Direction> GhostMoves(int x, int y, Direction currentDir, const std::vector<std::vector<int>>& map) {
+    std::vector<Direction> directions = {UP, DOWN, LEFT, RIGHT}, newDirections;
+
+    // Determine the opposite direction to prevent backtracking
+    Direction oppositeDir;
+    switch (currentDir) {
+        case UP: oppositeDir = DOWN; break;
+        case DOWN: oppositeDir = UP; break;
+        case LEFT: oppositeDir = RIGHT; break;
+        case RIGHT: oppositeDir = LEFT; break;
+    }
+
+    // Remove the opposite direction
+    for (Direction dir : directions) {
+        if (dir != oppositeDir) {
+            newDirections.push_back(dir);
+        }
+    }
+
+    directions = newDirections; // Update directions with the removed opposite direction
+    newDirections.clear(); 
+
+    // Manually check and remove directions that lead to a wall
+    for (Direction dir : directions) {
+        bool isLegal = true;
+        switch (dir) {
+            case UP: if (map[y - 1][x] == 1) isLegal = false; break;
+            case DOWN: if (map[y + 1][x] == 1) isLegal = false; break;
+            case LEFT: if (map[y][x - 1] == 1) isLegal = false; break;
+            case RIGHT: if (map[y][x + 1] == 1) isLegal = false; break;
+        }
+        if (isLegal) {
+            newDirections.push_back(dir);
+        }
+    }
+
+    // Handling stuck situation
+    if (newDirections.size() == 1) {
+        return newDirections;
+    } else if (newDirections.empty() && currentDir != NONE) {
+        return std::vector<Direction>{oppositeDir}; // Allow reversing direction
+    }
+
+    return newDirections;
+}
+
+int getRandomIndex(int max) {
+    return static_cast<int>(time(NULL)) % max; 
+}
+
+void addFruit(std::vector<std::vector<int>>& map, std::vector<GameObjectStruct>& fruits) {
+    std::vector<std::pair<int, int>> emptySpaces;
+
+    for (int y = 0; y < map.size(); ++y) {
+        for (int x = 0; x < map[0].size(); ++x) {
+            if (map[y][x] == 0) { // ]
+                emptySpaces.push_back({x, y});
+            }
+        }
+    }
+
+    if (!emptySpaces.empty()) {
+        // Choose a random tile
+        int index = rand() % emptySpaces.size();
+        int x = emptySpaces[index].first;
+        int y = emptySpaces[index].second;
+
+        // Choose a random fruit type
+        Type fruitTypes[] = {CHERRY, STRAWBERRY, ORANGE, LEMON, APPLE, GRAPES};
+        Type fruitType = fruitTypes[rand() % 6];
+
+        // Place the fruit
+        GameObjectStruct fruit = {x, y, fruitType, UP}; 
+        fruits.push_back(fruit);
+    }
+}
+
 
 /// Callback function to update the game state.
 ///
@@ -27,6 +107,8 @@ Uint32 gameUpdate(Uint32 interval, void * /*param*/)
 /// Program entry point.
 int main(int /*argc*/, char ** /*argv*/)
 {
+    srand(static_cast<unsigned int>(time(NULL)));
+
     std::vector<std::vector<int>> map = {{
         #include "board.def"
     }};
@@ -67,6 +149,10 @@ int main(int /*argc*/, char ** /*argv*/)
     enegizer4.x = 26, enegizer4.y = 25, enegizer4.type = ENERGIZER, enegizer4.dir = UP;
 
     enegizers.push_back(enegizer1), enegizers.push_back(enegizer2), enegizers.push_back(enegizer3), enegizers.push_back(enegizer4);
+
+    // Initialize fruits
+    std::vector<GameObjectStruct> fruits;
+
     
     //initialize ghosts
     std::vector<GameObjectStruct> ghosts;
@@ -78,10 +164,15 @@ int main(int /*argc*/, char ** /*argv*/)
 
     ghosts.push_back(blinky), ghosts.push_back(pinky),ghosts.push_back(inky),ghosts.push_back(clyde);
 
+
+    int PACMAN_START_X = 13;
+    int PACMAN_START_Y = 21;
+
+
     //initialize pacman
     GameObjectStruct pacman;
-    pacman.x = 13;
-    pacman.y = 21;
+    pacman.x = PACMAN_START_X;
+    pacman.y = PACMAN_START_Y;
     pacman.type = PACMAN;
     pacman.dir = UP;
 
@@ -154,6 +245,33 @@ int main(int /*argc*/, char ** /*argv*/)
                     break;
             }
             lastMovementTime = currentTime;
+
+            for (auto& ghost : ghosts) {
+            std::vector<Direction> legalMoves = GhostMoves(ghost.x, ghost.y, ghost.dir, map);
+            if (!legalMoves.empty()) {
+                int index = getRandomIndex(legalMoves.size());
+                Direction newDir = legalMoves[index]; // Select a new direction
+                ghost.dir = newDir; // Update ghost direction
+
+                // Update ghost position based on the new direction
+                switch (newDir) {
+                    case UP:
+                        if (map[ghost.y - 1][ghost.x] != 1) ghost.y -= 1;
+                        break;
+                    case DOWN:
+                        if (map[ghost.y + 1][ghost.x] != 1) ghost.y += 1;
+                        break;
+                    case LEFT:
+                        if (map[ghost.y][ghost.x - 1] != 1) ghost.x -= 1;
+                        else if (map[ghost.y][ghost.x - 1] != 1) ghost.x -= 1;
+                        break;
+                    case RIGHT:
+                        if (map[ghost.y][ghost.x + 1] != 1) ghost.x += 1;
+                        else if (map[ghost.y][ghost.x + 1] != 1) ghost.x += 1;
+                        break;
+                }
+            }
+        }
         }
 
         //Check if x and y of pacman are equal to that of the dots.
@@ -187,6 +305,13 @@ int main(int /*argc*/, char ** /*argv*/)
         for (GameObjectStruct&  ghost : ghosts) {
             //Check ghost position
             if (ghost.x == pacman.x && ghost.y == pacman.y) {
+                if (ghost.type != SCARED) {
+                    pacman.x = PACMAN_START_X;
+                    pacman.y = PACMAN_START_Y;
+                    int currentLives = ui.getLives();
+                    ui.setLives(currentLives - 1); 
+                }
+                
                 //reset ghost position and ghost type if ghost is scared
                 if (ghost.type == SCARED) { 
                     if (ghost == blinky){ //checks for equal position
@@ -210,17 +335,29 @@ int main(int /*argc*/, char ** /*argv*/)
                         ghost.type = CLYDE;
                     }
                 }
-                //resets pacman position and reduces one life if ghost is not of type scared.
-                if (ghost.type == BLINKY || ghost.type == PINKY || ghost.type == INKY || ghost.type == CLYDE) {
-                    pacman.x=13;
-                    pacman.y=21;
-                    int currentLives=ui.getLives(); // Get the current lives
-                    ui.setLives(currentLives-1); // Reduce 1 life
-                }
             }
         }
 
+        for (auto iterator = fruits.begin(); iterator != fruits.end();) {
+            if (iterator->x == pacman.x && iterator->y == pacman.y) {
+                // Collision detected, increase score
+                int currentScore = ui.getScore();
+                ui.setScore(currentScore + 20); 
+
+                // Remove the fruit from the board
+                iterator = fruits.erase(iterator);
+            } else {
+                ++iterator;
+            }
+        }
+
+        objects.insert(objects.end(), fruits.begin(), fruits.end());
         ui.update(objects);
+
+        if (ui.getScore() % 100 == 0 && ui.getScore() != 0) {
+            addFruit(map, fruits);
+        }
+
 
         while (!SDL_TICKS_PASSED(SDL_GetTicks(), timeout)) {
             // ... do work until timeout has elapsed

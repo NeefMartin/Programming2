@@ -36,7 +36,7 @@ enum Type {
 };
 
 /// An enum to denote the direction of an item on screen.
-enum Direction { UP, DOWN, LEFT, RIGHT };
+enum Direction { UP, DOWN, LEFT, RIGHT, NONE };
 
 /// This represents an item that is drawn onto the screen.
 struct GameObjectStruct {
