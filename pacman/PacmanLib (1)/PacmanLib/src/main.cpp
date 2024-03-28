@@ -11,6 +11,21 @@
 const Uint32 pacmanMovementInterval = 250; // milliseconds between movements
 Uint32 lastMovementTime = 0; // Last time Pac-Man moved
 
+int startTimer= 0; // Timer has not started
+int ticker = 0; // Timer starts at 0 ticks
+int fruitsTaken = 0 ; // No fruits taken from the beginning.
+
+
+bool ghostsAreScared = false;
+std::vector<Ghost>* globalGhosts; 
+
+void ResetGhosts() {
+    for (auto& ghost : *globalGhosts) {
+        ghost.type = ghost.originalType; // Reset each ghost to its original type
+    }
+    ghostsAreScared = false;
+}
+
 
 std::vector<Direction> GhostMoves(int x, int y, Direction currentDir, const std::vector<std::vector<int>>& map) {
     std::vector<Direction> directions = {UP, DOWN, LEFT, RIGHT}, newDirections;
@@ -67,7 +82,7 @@ void addFruit(std::vector<std::vector<int>>& map, std::vector<GameObjectStruct>&
 
     for (int y = 0; y < map.size(); ++y) {
         for (int x = 0; x < map[0].size(); ++x) {
-            if (map[y][x] == 0) { // ]
+            if (map[y][x] == 0) { 
                 emptySpaces.push_back({x, y});
             }
         }
@@ -103,6 +118,15 @@ Uint32 gameUpdate(Uint32 interval, void * /*param*/)
     // Do game loop update here
     return interval;
 }
+
+Uint32 ResetGhostsCallback(Uint32 interval, void* param) {
+    // Call the ResetGhosts function; make sure this is thread-safe
+    ResetGhosts();
+
+    // Returning 0 stops the timer
+    return 0;
+}
+
 
 /// Program entry point.
 int main(int /*argc*/, char ** /*argv*/)
@@ -155,14 +179,23 @@ int main(int /*argc*/, char ** /*argv*/)
 
     
     //initialize ghosts
-    std::vector<GameObjectStruct> ghosts;
-    GameObjectStruct blinky, pinky, inky, clyde;
-    blinky.x = 12; blinky.y = 13; blinky.type = BLINKY; blinky.dir = UP;
-    pinky.x = 13; pinky.y = 13; pinky.type = PINKY; pinky.dir = UP;
-    inky.x = 14; inky.y = 13; inky.type = INKY; inky.dir = UP;
-    clyde.x = 15; clyde.y = 13; clyde.type = CLYDE; clyde.dir = UP;
 
-    ghosts.push_back(blinky), ghosts.push_back(pinky),ghosts.push_back(inky),ghosts.push_back(clyde);
+    std::vector<Ghost> ghosts;
+    // Initialize ghosts with their starting positions and types
+    ghosts.push_back(Ghost(12, 13, BLINKY, UP));
+    ghosts.push_back(Ghost(13, 13, PINKY, UP));
+    ghosts.push_back(Ghost(14, 13, INKY, UP));
+    ghosts.push_back(Ghost(15, 13, CLYDE, UP));
+    globalGhosts = &ghosts;
+
+    // std::vector<GameObjectStruct> ghosts;
+    // GameObjectStruct blinky, pinky, inky, clyde;
+    // blinky.x = 12; blinky.y = 13; blinky.type = BLINKY; blinky.dir = UP;
+    // pinky.x = 13; pinky.y = 13; pinky.type = PINKY; pinky.dir = UP;
+    // inky.x = 14; inky.y = 13; inky.type = INKY; inky.dir = UP;
+    // clyde.x = 15; clyde.y = 13; clyde.type = CLYDE; clyde.dir = UP;
+
+    // ghosts.push_back(blinky), ghosts.push_back(pinky),ghosts.push_back(inky),ghosts.push_back(clyde);
 
 
     int PACMAN_START_X = 13;
@@ -292,51 +325,44 @@ int main(int /*argc*/, char ** /*argv*/)
             //Starts timer and sets ghosts to type SCARED if the ghost collides with an enegizer.
             if (enegizer.x == pacman.x && enegizer.y == pacman.y) {
                 i = enegizers.erase(i); // If it is the same, erase dot
-                for (GameObjectStruct& ghost : ghosts) {
+                for (auto& ghost : ghosts) {
                     ghost.type = SCARED;
                 }
+                SDL_TimerID timerID = SDL_AddTimer(10000, ResetGhostsCallback, nullptr);
             } else {
                 ++i; // Move to the next element
             }
         }
 
-        //Check if x and y of pacman are equal to that of the ghosts.
-        //iterate through all ghosts
-        for (GameObjectStruct&  ghost : ghosts) {
-            //Check ghost position
+        // Iterate through all ghosts to check for collisions
+        for (auto& ghost : ghosts) {
+            // Check if there's a position match between Pac-Man and the ghost
             if (ghost.x == pacman.x && ghost.y == pacman.y) {
+                // Check if the ghost is in the SCARED state
+                if (ghost.type == SCARED) {
+
+                    // Increment the score for eating a scared ghost
+                    int pointsForEatingGhost = 200; // Define points earned for eating a scared ghost
+                    int currentScore = ui.getScore();
+                    ui.setScore(currentScore + pointsForEatingGhost);
+
+                    ghost.reset();
+                    // Proceed to the next iteration since the collision is handled
+                    continue;
+                }
+
+                // Logic for non-scared ghosts - Reset Pac-Man and decrement lives
                 if (ghost.type != SCARED) {
                     pacman.x = PACMAN_START_X;
                     pacman.y = PACMAN_START_Y;
                     int currentLives = ui.getLives();
-                    ui.setLives(currentLives - 1); 
-                }
-                
-                //reset ghost position and ghost type if ghost is scared
-                if (ghost.type == SCARED) { 
-                    if (ghost == blinky){ //checks for equal position
-                        ghost.x = 12;
-                        ghost.y = 13;
-                        ghost.type = BLINKY; //resets type
-                    }
-                    if (ghost == pinky) {
-                        ghost.x = 13;
-                        ghost.y = 13;
-                        ghost.type = PINKY;
-                    }
-                    if (ghost == inky) {
-                        ghost.x = 14;
-                        ghost.y = 13;
-                        ghost.type = INKY;
-                    }
-                    if (ghost == clyde){
-                        ghost.x = 15;
-                        ghost.y = 13;
-                        ghost.type = CLYDE;
-                    }
+                    ui.setLives(currentLives - 1);
+
+                  
                 }
             }
         }
+
 
         for (auto iterator = fruits.begin(); iterator != fruits.end();) {
             if (iterator->x == pacman.x && iterator->y == pacman.y) {
@@ -354,7 +380,7 @@ int main(int /*argc*/, char ** /*argv*/)
         objects.insert(objects.end(), fruits.begin(), fruits.end());
         ui.update(objects);
 
-        if (ui.getScore() % 100 == 0 && ui.getScore() != 0) {
+        if (ui.getScore() % 100 == 0 && ui.getScore() != 0 && fruits.size() < 1) {
             addFruit(map, fruits);
         }
 
